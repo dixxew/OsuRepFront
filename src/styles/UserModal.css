@@ -1,0 +1,75 @@
+.user-modal .ant-modal {
+    padding: 0;
+    width: 900;
+  }
+  
+  .user-info {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .user-avatar {
+    margin-right: 20px;
+  }
+  
+  .user-details {
+    color: #ffffff;
+    font-family: "Inter-Regular", Helvetica;
+    position: relative;
+    width: 500px;
+  }
+  
+  .user-nickname {
+    font-size: 48px;
+    font-weight: 400;
+  }
+  
+  .user-rank {
+    font-size: 32px;
+    font-weight: 400;
+    margin-top: auto;
+  }
+  
+  
+  .user-level,
+  .user-play-count,
+  .user-play-time,
+  .user-pp {
+    font-size: 16px;
+    font-weight: 400;
+    margin-top: 8px;
+    margin-top: auto;
+  }
+  
+  .user-reputation {
+    font-size: 24px;
+    font-weight: 400;
+    margin-top: 8px;
+  }
+    
+  .profile-link {
+    display: block;
+    background-color: #8f8f8f;
+    border-radius: 6px;
+    color: #ffffff;
+    font-family: "Inter-Regular", Helvetica;
+    font-size: 20px;
+    font-weight: 400;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    margin-top: auto;
+  }
+
+  .hr {
+    display: block;
+  height: 1px;
+  border: 0;
+  border-top: 1px solid rgb(48, 48, 48);
+  margin-top: -2px;
+  margin-bottom: -2px;
+  padding: 0;
+  }
+  

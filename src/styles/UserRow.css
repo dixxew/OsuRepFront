@@ -1,0 +1,22 @@
+.first-row {
+  border: 8px solid rgb(255, 255, 0);
+  background-color: rgba(255, 255, 0, 0.096);
+  font-size: 24px;
+}
+
+.second-row {
+  border: 3px solid rgb(128, 0, 128);  
+  background-color: rgba(128, 0, 128, 0.062);
+  font-size: 20px;
+}
+
+.third-row {
+  border: 2px solid rgb(0, 0, 255);  
+  background-color: rgba(0, 0, 255, 0.048);
+  font-size: 16px;
+}
+
+/* Optional: Add padding or margins to make the borders more visible */
+.first-row > td, .second-row > td, .third-row > td {
+  padding: 8px 16px;
+}

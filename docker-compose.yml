@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: .
+    container_name: osu-rep-frontend
+    restart: unless-stopped
+    networks:
+      - osu-russian-rep
+
+networks:
+  osu-russian-rep:
+    external: true

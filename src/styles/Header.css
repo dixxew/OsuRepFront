@@ -1,0 +1,49 @@
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: auto;
+  padding: 8px 16px;
+  background: rgba(10, 14, 17, 0.7);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(6px);
+}
+
+.app-header-inner {
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 1280px;
+  margin: 0 auto;
+  gap: 12px;
+}
+
+.osu-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.brand {
+  font-size: 18px;
+  color: #fff;
+}
+
+.channel-tag {
+  margin-left: 4px;
+}
+
+.app-header-right .ant-btn {
+  color: #dcdcdc;
+}
+
+.app-header-right .ant-btn:hover {
+  color: #fff;
+}
+
+@media (max-width: 575px) {
+  .brand { display: none; }        /* на мобилках оставим иконку + тег */
+  .channel-tag { margin-left: 0; }
+}

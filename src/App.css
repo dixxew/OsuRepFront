@@ -1,0 +1,67 @@
+/* Ensure the entire height is used */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* Main container */
+.App {
+  text-align: center;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #0a0e11, #050708);
+  color: white;
+}
+.bordered {
+  background-color: #0d1114;
+}
+/* Header styling */
+.App-header {
+  background: linear-gradient(to bottom, #181818, #181818);
+  padding: 20px;
+  animation: gradient-animation 5s ease infinite;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Main content area */
+.App-content {
+  flex: 1;
+  padding: 20px;
+}
+
+/* Footer styling */
+.app-footer {
+  padding: 32px;
+  background: transparent;
+  color: white;
+  text-align: center;
+  margin-top: auto; /* Ensures the footer sticks to the bottom if content is short */
+}
+
+.app-footer a {
+  color: #ffd700;
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Gradient animation */
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin: 0;
+}
