@@ -54,8 +54,9 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
     userWordStatsService
       .getTopWords(user.nickname, 50)
       .then((res) => {
-        setWords(res);
-        setMaxCount(Math.max(...res.map((x) => x.count), 1));
+        const arr = Array.isArray(res) ? res : [];
+        setWords(arr);
+        setMaxCount(arr.length > 0 ? Math.max(...arr.map((x) => x.count)) : 1);
       })
       .catch((e) => console.error("Failed to load user words:", e))
       .finally(() => setLoadingWords(false));
@@ -270,7 +271,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
                 alignItems: "center",
               }}
             >
-              {words.map((w) => {
+              {Array.isArray(words) && 
+              words.map((w) => {
                 const intensity = w.count / maxCount;
                 const alpha = 0.25 + intensity * 0.4;
                 const bg = `linear-gradient(145deg, rgba(56,189,248,${alpha}), rgba(14,165,233,${alpha}))`;
