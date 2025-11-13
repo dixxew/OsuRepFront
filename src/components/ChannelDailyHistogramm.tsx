@@ -2,8 +2,16 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
-import { Card, Flex, Skeleton, Statistic, Typography, Empty, theme } from "antd";
-import type { Plugin } from "chart.js";
+import {
+  Card,
+  Flex,
+  Skeleton,
+  Statistic,
+  Typography,
+  Empty,
+  theme,
+} from "antd";
+import type { Plugin, ChartData, ChartDataset } from "chart.js";
 
 const { Title, Text } = Typography;
 
@@ -24,8 +32,8 @@ const ChannelDailyHistogramm: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  const chartRef = useRef<any>(null);
   const { token } = theme.useToken();
+  const chartRef = useRef<any>(null);
 
   const nowHour = new Date().getHours();
   const prevHour = wrap24(nowHour - 1);
@@ -33,26 +41,28 @@ const ChannelDailyHistogramm: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       try {
         setLoading(true);
+
         const resp = await axios.get<HourlyAverageMessageCount[]>(
-          `https://osu.dixxew.ru/api/Message/GetDailyMessageCounts`
+          "https://osu.dixxew.ru/api/Message/GetDailyMessageCounts"
         );
 
-        // Нормализуем к 24 точкам (на всякий)
         const raw = resp.data ?? [];
-        const byHour = Array.from({ length: HOUR_COUNT }, (_, h) => {
+
+        const normalized = Array.from({ length: HOUR_COUNT }, (_, h) => {
           const item = raw.find((x) => x.hour === h);
           return item ? item.averageMessageCount : 0;
         });
 
         if (!mounted) return;
 
-        setData(byHour);
+        setData(normalized);
         setLabels(Array.from({ length: HOUR_COUNT }, (_, h) => hourLabel(h)));
       } catch (e: any) {
-        setErr(e?.message || "Failed to load histogram data");
+        if (mounted) setErr(e?.message ?? "Failed to load histogram data");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -63,19 +73,13 @@ const ChannelDailyHistogramm: React.FC = () => {
     };
   }, []);
 
-  const currentVal = data?.[nowHour];
-  const prevVal = data?.[prevHour];
-  const nextVal = data?.[nextHour];
-
-  const chartData = useMemo(() => {
+  const chartData: ChartData<"bar"> = useMemo(() => {
     if (!data) {
-      return { labels: [], datasets: [] as any[] };
+      return { labels: [] as string[], datasets: [] as ChartDataset<"bar">[] };
     }
 
-    // Цвета: текущий час — яркий, остальные — спокойные
-    const base = token.colorPrimary; // из темы antd
-    const muted = token.colorPrimaryBgHover; // светлее
-    const bars = data.map((_, i) => (i === nowHour ? base : muted));
+    const base = token.colorPrimaryBgHover;
+    const accent = token.colorPrimary;
 
     return {
       labels,
@@ -83,10 +87,13 @@ const ChannelDailyHistogramm: React.FC = () => {
         {
           label: "Average Messages per Hour",
           data,
-          backgroundColor: bars,
+          backgroundColor: (ctx) => {
+            const i = ctx.dataIndex;
+            return i === nowHour ? accent : base;
+          },
           borderRadius: 6,
-          borderSkipped: false as const,
-          barThickness: "flex" as const,
+          borderSkipped: false,
+          barThickness: "flex" as any,
           maxBarThickness: 22,
         },
       ],
@@ -94,71 +101,75 @@ const ChannelDailyHistogramm: React.FC = () => {
   }, [data, labels, nowHour, token.colorPrimary, token.colorPrimaryBgHover]);
 
   const options = useMemo(
-  () => ({
-    maintainAspectRatio: false,
-    animation: { duration: 300 },
-    layout: { padding: { top: 6, right: 8, bottom: 0, left: 8 } },
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: { color: "rgba(0,0,0,0.05)", drawBorder: false },
-        ticks: { color: "#7f7f7f", precision: 0 as const },
-      },
-      x: {
-        grid: { display: false },
-        ticks: { color: "#7f7f7f", maxRotation: 0, autoSkip: true },
-      },
-    },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: "rgba(0,0,0,0.8)",
-        displayColors: false,
-        callbacks: {
-          title: (items: any[]) => items?.[0]?.label ?? "",
-          label: (ctx: any) => `Avg: ${ctx.parsed.y}`,
+    () => ({
+      maintainAspectRatio: false,
+      animation: { duration: 280, easing: "easeOutQuart" },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+          ticks: { color: "#9a9a9a", precision: 0 },
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: "#9a9a9a", maxRotation: 0, autoSkip: true },
         },
       },
-    },
-  }),
-  []
-);
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "rgba(0,0,0,0.85)",
+          padding: 10,
+          cornerRadius: 6,
+          displayColors: false,
+          callbacks: {
+            title: (items: any[]) => items[0]?.label ?? "",
+            label: (ctx: any) => `Avg: ${ctx.parsed.y}`,
+          },
+        },
+      },
+    }),
+    []
+  );
 
-// ↓↓↓ ВЫНЕСЕНО ИЗ options
-const currentHourLinePlugin = useMemo<Plugin<"bar">>(
-  () => ({
-    id: "currentHourLine",
-    afterDatasetsDraw(chart) {
-      const { ctx, scales } = chart;
-      const x = (scales as any).x.getPixelForValue(nowHour);
-      ctx.save();
-      ctx.strokeStyle = "rgba(0,0,0,0.15)";
-      ctx.setLineDash([4, 3]);
-      ctx.beginPath();
-      ctx.moveTo(x, (scales as any).y.top);
-      ctx.lineTo(x, (scales as any).y.bottom);
-      ctx.stroke();
-      ctx.restore();
-    },
-  }),
-  [nowHour]
-);
+  const currentHourLinePlugin = useMemo<Plugin<"bar">>(
+    () => ({
+      id: "currentHourLine",
+      afterDatasetsDraw(chart) {
+        const { ctx, scales } = chart as any;
+        const x = scales.x.getPixelForValue(nowHour);
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.25)";
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x, scales.y.top);
+        ctx.lineTo(x, scales.y.bottom);
+        ctx.stroke();
+        ctx.restore();
+      },
+    }),
+    [nowHour]
+  );
 
-  const numberOrDash = (v: number | undefined) =>
+  const currentVal = data?.[nowHour];
+  const prevVal = data?.[prevHour];
+  const nextVal = data?.[nextHour];
+
+  const clamp = (v: number | undefined) =>
     typeof v === "number" && Number.isFinite(v) ? Math.round(v) : "—";
 
   return (
     <Card
-      bordered
+      bordered={false}
       style={{
         width: "100%",
-        maxWidth: 860,
-        margin: "0 auto",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+        background: "#11141a",
+        borderRadius: 16,
+        boxShadow: "0 6px 16px rgba(0,0,0,0.35)",
       }}
-      bodyStyle={{ padding: 16 }}
+      bodyStyle={{ padding: 20 }}
     >
-      <Flex vertical gap={12} style={{ width: "100%" }}>
+      <Flex vertical gap={16} style={{ width: "100%" }}>
         <Flex align="center" justify="space-between">
           <Title level={4} style={{ margin: 0 }}>
             Daily average
@@ -169,45 +180,80 @@ const currentHourLinePlugin = useMemo<Plugin<"bar">>(
         {loading ? (
           <Skeleton active paragraph={{ rows: 4 }} />
         ) : err ? (
-          <Empty
-            description={
-              <Text type="secondary">
-                Не смог загрузить данные: {err}
-              </Text>
-            }
-          />
+          <Empty description={<Text type="secondary">{err}</Text>} />
         ) : (
           <>
             <div style={{ height: 240 }}>
-              <Bar ref={chartRef} data={chartData} options={options as any} />
+              <Bar
+                ref={chartRef}
+                data={chartData}
+                options={options as any}
+                plugins={[currentHourLinePlugin]}
+              />
             </div>
 
-            <Flex gap={16} wrap="wrap">
-              <Card size="small" style={{ flex: "1 1 160px" }}>
-                <Statistic
-                  title={`Prev (${hourLabel(prevHour)})`}
-                  value={numberOrDash(prevVal)}
-                />
-              </Card>
+            <Flex gap={12} wrap="wrap">
+              {/* PREVIOUS */}
               <Card
                 size="small"
+                bodyStyle={{ padding: "8px 12px" }}
+                style={{ flex: "1 1 120px", background: "#191c23" }}
+              >
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Prev
+                </Text>
+                <div style={{ fontSize: 20, fontWeight: 600, marginTop: 2 }}>
+                  {clamp(prevVal)}
+                </div>
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  {hourLabel(prevHour)}
+                </Text>
+              </Card>
+
+              {/* CURRENT */}
+              <Card
+                size="small"
+                bodyStyle={{ padding: "8px 12px" }}
                 style={{
-                  flex: "1 1 160px",
+                  flex: "1 1 120px",
+                  background: "#191c23",
                   borderColor: token.colorPrimary,
-                  boxShadow: "0 0 0 2px rgba(0,0,0,0.02) inset",
+                  boxShadow: `0 0 10px ${token.colorPrimary}33`,
                 }}
               >
-                <Statistic
-                  title={`Current (${hourLabel(nowHour)})`}
-                  value={numberOrDash(currentVal)}
-                  valueStyle={{ color: token.colorPrimary }}
-                />
+                <Text style={{ fontSize: 12, color: token.colorPrimary }}>
+                  Current
+                </Text>
+                <div
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    marginTop: 2,
+                    color: token.colorPrimary,
+                  }}
+                >
+                  {clamp(currentVal)}
+                </div>
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  {hourLabel(nowHour)}
+                </Text>
               </Card>
-              <Card size="small" style={{ flex: "1 1 160px" }}>
-                <Statistic
-                  title={`Next (${hourLabel(nextHour)})`}
-                  value={numberOrDash(nextVal)}
-                />
+
+              {/* NEXT */}
+              <Card
+                size="small"
+                bodyStyle={{ padding: "8px 12px" }}
+                style={{ flex: "1 1 120px", background: "#191c23" }}
+              >
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Next
+                </Text>
+                <div style={{ fontSize: 20, fontWeight: 600, marginTop: 2 }}>
+                  {clamp(nextVal)}
+                </div>
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  {hourLabel(nextHour)}
+                </Text>
               </Card>
             </Flex>
           </>

@@ -1,14 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
 import type { Plugin } from "chart.js";
-import { Card, Skeleton, Empty, Flex, Typography, theme } from "antd";
+import { Card, Flex, Skeleton, Empty, Typography, theme } from "antd";
 
-const { Text, Title } = Typography;
+const { Title, Text } = Typography;
 
 interface DailyMessageCount {
-  date: string; // ISO или совместимое
+  date: string;
   messageCount: number;
 }
 
@@ -20,13 +20,13 @@ const fmtLabel = (d: Date, withYear = false) =>
   }).format(d);
 
 const ChannelMonthlyHistogramm: React.FC = () => {
-  const [data, setData] = useState<number[] | null>(null);
+  const [values, setValues] = useState<number[] | null>(null);
   const [dates, setDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  const chartRef = useRef<any>(null);
   const { token } = theme.useToken();
+  const chartRef = useRef<any>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -34,35 +34,31 @@ const ChannelMonthlyHistogramm: React.FC = () => {
       try {
         setLoading(true);
         const resp = await axios.get<DailyMessageCount[]>(
-          `https://osu.dixxew.ru/api/Message/GetMonthlyMessageCounts`
+          "https://osu.dixxew.ru/api/Message/GetMonthlyMessageCounts"
         );
 
-        const raw = (resp.data ?? []).slice().sort((a, b) => {
-          // На всякий — гарантируем возрастание по дате
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        });
-
-        const vals = raw.map((x) => x.messageCount);
-        const ds = raw.map((x) => new Date(x.date));
+        const raw = (resp.data ?? []).slice().sort((a, b) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
 
         if (!mounted) return;
-        setData(vals);
-        setDates(ds);
+        setValues(raw.map((x) => x.messageCount));
+        setDates(raw.map((x) => new Date(x.date)));
       } catch (e: any) {
-        setErr(e?.message || "Failed to load monthly histogram data");
+        if (mounted) setErr(e?.message ?? "Failed to load monthly histogram data");
       } finally {
         if (mounted) setLoading(false);
       }
     })();
 
-    return () => {
-      mounted = false;
-    };
+    
+  return () => {
+    mounted = false;
+  };
   }, []);
 
   const todayKey = useMemo(() => {
     const t = new Date();
-    // нормализуем к дате без времени
     return new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime();
   }, []);
 
@@ -70,72 +66,94 @@ const ChannelMonthlyHistogramm: React.FC = () => {
     if (!dates.length) return [];
     const yearSet = new Set(dates.map((d) => d.getFullYear()));
     const singleYear = yearSet.size === 1;
+
     return dates.map((d) => fmtLabel(d, !singleYear));
   }, [dates]);
 
   const chartData = useMemo(() => {
-    if (!data) return { labels: [], datasets: [] as any[] };
-    const base = token.colorPrimaryBgHover;
-    const highlight = token.colorPrimary;
+    if (!values) return { labels: [], datasets: [] as any[] };
 
-    const bg = dates.map((d) => {
-      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-      return key === todayKey ? highlight : base;
-    });
+    // Цвета для графика — спокойные и современные
+    const base = token.colorPrimaryBg;          // светлая основа
+    const accent = token.colorPrimary;          // подсветка "сегодня"
+    const gradientCache: any = {};
 
     return {
       labels,
       datasets: [
         {
           label: "Messages per Day",
-          data,
-          backgroundColor: bg,
+          data: values,
+          backgroundColor: (ctx: any) => {
+            const idx = ctx.dataIndex;
+            const d = dates[idx];
+            if (!d) return base;
+
+            const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+            const isToday = key === todayKey;
+
+            const chart = ctx.chart;
+            const { ctx: gctx, chartArea } = chart;
+
+            if (!chartArea) return base;
+
+            const cacheKey = isToday ? "today" : "normal";
+            if (gradientCache[cacheKey]) return gradientCache[cacheKey];
+
+            const gradient = gctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+            if (isToday) {
+              gradient.addColorStop(0, accent);
+              gradient.addColorStop(1, accent + "CC");
+            } else {
+              gradient.addColorStop(0, base);
+              gradient.addColorStop(1, base + "AA");
+            }
+            gradientCache[cacheKey] = gradient;
+            return gradient;
+          },
           borderRadius: 6,
-          borderSkipped: false as const,
-          barThickness: "flex" as const,
-          maxBarThickness: 24, // не ломаем узкие месяцы
+          borderSkipped: false,
+          barThickness:  "flex" as any,
+          maxBarThickness: 22,
         },
       ],
     };
-  }, [data, dates, labels, todayKey, token.colorPrimary, token.colorPrimaryBgHover]);
+  }, [values, dates, labels, todayKey, token.colorPrimary, token.colorPrimaryBg]);
 
   const options = useMemo(
     () => ({
       maintainAspectRatio: false,
-      animation: { duration: 300 },
+      animation: { duration: 300, easing: "easeOutQuart" },
       scales: {
         y: {
           beginAtZero: true,
-          grid: { color: "rgba(0,0,0,0.05)", drawBorder: false },
-          ticks: { color: "#7f7f7f", precision: 0 as const },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+          ticks: { color: "#999", precision: 0 },
         },
         x: {
           grid: { display: false },
-          ticks: {
-            color: "#7f7f7f",
-            maxRotation: 0,
-            autoSkip: true,
-            autoSkipPadding: 8,
-          },
+          ticks: { color: "#aaa", maxRotation: 0, autoSkip: true, autoSkipPadding: 6 },
         },
       },
       plugins: {
         legend: { display: false },
         tooltip: {
           backgroundColor: "rgba(0,0,0,0.85)",
+          cornerRadius: 6,
+          padding: 10,
+          titleFont: { weight: "600" },
           displayColors: false,
           callbacks: {
             title: (items: any[]) => {
               const idx = items?.[0]?.dataIndex ?? 0;
-              const full = dates[idx];
-              return full
-                ? new Intl.DateTimeFormat(undefined, {
-                    weekday: "short",
-                    year: "numeric",
-                    month: "long",
-                    day: "2-digit",
-                  }).format(full)
-                : items?.[0]?.label ?? "";
+              const d = dates[idx];
+              if (!d) return "";
+              return new Intl.DateTimeFormat(undefined, {
+                weekday: "short",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }).format(d);
             },
             label: (ctx: any) => `Messages: ${ctx.parsed.y}`,
           },
@@ -145,12 +163,13 @@ const ChannelMonthlyHistogramm: React.FC = () => {
     [dates]
   );
 
-  // Тонкая линия на сегодняшнем дне
+  // вертикальная линия на "сегодня"
   const todayLinePlugin = useMemo<Plugin<"bar">>(
     () => ({
       id: "todayLine",
       afterDatasetsDraw(chart) {
         if (!dates.length) return;
+
         const idx = dates.findIndex((d) => {
           const k = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
           return k === todayKey;
@@ -159,9 +178,10 @@ const ChannelMonthlyHistogramm: React.FC = () => {
 
         const { ctx, scales } = chart as any;
         const x = scales.x.getPixelForValue(idx);
+
         ctx.save();
-        ctx.strokeStyle = "rgba(0,0,0,0.18)";
-        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = "rgba(255,255,255,0.25)";
+        ctx.setLineDash([5, 3]);
         ctx.beginPath();
         ctx.moveTo(x, scales.y.top);
         ctx.lineTo(x, scales.y.bottom);
@@ -172,47 +192,46 @@ const ChannelMonthlyHistogramm: React.FC = () => {
     [dates, todayKey]
   );
 
+  const rangeLabel = dates.length
+    ? `${new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(
+        dates[0]
+      )} — ${new Intl.DateTimeFormat(undefined, {
+        month: "long",
+        year: "numeric",
+      }).format(dates[dates.length - 1])}`
+    : null;
+
   return (
     <Card
-      bordered
+      bordered={false}
       style={{
         width: "100%",
-        margin: "0 auto",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+        borderRadius: 16,
+        background: "#11141a",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.35)",
       }}
-      bodyStyle={{ padding: 16 }}
+      bodyStyle={{ padding: 20 }}
     >
-      <Flex vertical gap={12} style={{ width: "100%" }}>
+      <Flex vertical gap={16} style={{ width: "100%" }}>
         <Flex align="center" justify="space-between">
           <Title level={4} style={{ margin: 0 }}>
             Monthly messages
           </Title>
-          {dates.length ? (
-            <Text type="secondary">
-              {new Intl.DateTimeFormat(undefined, {
-                month: "long",
-                year: "numeric",
-              }).format(dates[0])}
-              {" — "}
-              {new Intl.DateTimeFormat(undefined, {
-                month: "long",
-                year: "numeric",
-              }).format(dates[dates.length - 1])}
-            </Text>
-          ) : (
-            <Text type="secondary">No data</Text>
-          )}
+          <Text type="secondary">{rangeLabel ?? "No data"}</Text>
         </Flex>
 
         {loading ? (
           <Skeleton active paragraph={{ rows: 4 }} />
         ) : err ? (
-          <Empty
-            description={<Text type="secondary">Не смог загрузить данные: {err}</Text>}
-          />
+          <Empty description={<Text type="secondary">{err}</Text>} />
         ) : (
-          <div style={{ height: 200 }}>
-            <Bar data={chartData} options={options as any} plugins={[todayLinePlugin]} />
+          <div style={{ height: 220 }}>
+            <Bar
+              ref={chartRef}
+              data={chartData}
+              options={options as any}
+              plugins={[todayLinePlugin]}
+            />
           </div>
         )}
       </Flex>

@@ -13,22 +13,24 @@ import {
   Layout,
   Row,
   Col,
-  Card,
   Pagination,
   Skeleton,
   Empty,
   Typography,
-  theme,
   Button,
   Space,
+  theme,
+  Card,
 } from "antd";
-import darkTheme from "../theme";
+
 import {
   ApiOutlined,
   DashboardOutlined,
   SendOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+
+import darkTheme from "../theme";
 
 const { Content, Footer } = Layout;
 const { Text } = Typography;
@@ -44,21 +46,10 @@ const Main: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchNickname, setSearchNickname] = useState<string>("");
 
-  const { token } = theme.useToken();
-  const API_BASE = (
-    process.env.REACT_APP_API_BASE_URL ||
-    process.env.REACT_APP_API_BASE ||
-    ""
-  ).replace(/\/$/, "");
-
   useEffect(() => {
     const controller = new AbortController();
-    const fetchUsers = async (
-      pageNumber: number,
-      pageSizeVal: number,
-      sort: string | null,
-      search: string
-    ) => {
+
+    const fetchUsers = async () => {
       try {
         setLoading(true);
         setLoadError(null);
@@ -67,10 +58,10 @@ const Main: React.FC = () => {
           `https://osu.dixxew.ru/api/Users/GetUsers`,
           {
             params: {
-              pageNumber,
-              pageSize: pageSizeVal,
-              sortField: sort,
-              search: search || undefined, 
+              pageNumber: currentPage,
+              pageSize,
+              sortField,
+              search: searchNickname || undefined,
             },
             signal: controller.signal,
           }
@@ -78,33 +69,20 @@ const Main: React.FC = () => {
 
         setUsers(response.data.data);
         setTotalRecords(response.data.totalRecords);
-      } catch (error: any) {
-        if (axios.isCancel(error)) return;
-        console.error("Ошибка при загрузке пользователей:", error);
-        setUsers([]);
-        setLoadError(error?.message ?? "Failed to load users");
+      } catch (e: any) {
+        if (!axios.isCancel(e)) {
+          setUsers([]);
+          setLoadError(e?.message ?? "Failed to load users");
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers(currentPage, pageSize, sortField, searchNickname);
-
+    fetchUsers();
     return () => controller.abort();
   }, [currentPage, pageSize, sortField, searchNickname]);
 
-  const handlePageChange = (page: number, pageSizeParam?: number) => {
-    setCurrentPage(page);
-    if (pageSizeParam && pageSizeParam !== pageSize) {
-      setPageSize(pageSizeParam);
-    }
-  };
-
-  const handleSortChange = (field: string) => setSortField(field);
-  const handleRowClick = (record: ChatUser) => setSelectedUser(record);
-  const handleModalClose = () => setSelectedUser(null);
-
-  // Подпись под пагинацией: «X–Y из Z»
   const paginationShowTotal = useMemo(
     () => (total: number, range: [number, number]) =>
       `${range[0]}–${range[1]} из ${total}`,
@@ -114,29 +92,26 @@ const Main: React.FC = () => {
   return (
     <div className="App">
       <ConfigProvider theme={darkTheme}>
-        <Layout style={{ minHeight: "100vh" }}>
+        <Layout className="layout-root">
           <header>
             <Header />
           </header>
 
-          {/* оставляем нижний паддинг под футер */}
-          <Content style={{ padding: "16px 16px" }}>
+          <Content className="content-root">
             <Row gutter={[16, 16]}>
-              <Col xs={24} lg={16} xl={18}>
+              {/* LEFT */}
+              <Col xs={24} md={16} lg={17} xl={18}>
                 <Card
-                  bordered
+                  bordered={false}
+                  className="main-card"
                   bodyStyle={{ padding: 0 }}
-                  style={{
-                    overflow: "hidden",
-                    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  }}
                 >
                   {loading ? (
-                    <div style={{ padding: 16 }}>
+                    <div className="pad16">
                       <Skeleton active paragraph={{ rows: 8 }} />
                     </div>
                   ) : loadError ? (
-                    <div style={{ padding: 24 }}>
+                    <div className="pad24">
                       <Empty
                         description={
                           <Text type="secondary">
@@ -150,119 +125,135 @@ const Main: React.FC = () => {
                       users={users}
                       currentPage={currentPage}
                       pageSize={pageSize}
-                      onSortChange={handleSortChange}
-                      onRowClick={handleRowClick}
+                      onSortChange={(f) => setSortField(f)}
+                      onRowClick={(u) => setSelectedUser(u)}
                       onSearchNickname={(term) => {
                         setSearchNickname(term);
-                        setCurrentPage(1); // сбрасываем пагинацию, чтобы с первого запроса
+                        setCurrentPage(1);
                       }}
                     />
                   ) : (
-                    <div style={{ padding: 24 }}>
+                    <div className="pad24">
                       <Empty description="Нет данных" />
                     </div>
                   )}
                 </Card>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    marginTop: 8,
-                  }}
-                >
+                <div className="pagination-wrapper">
                   <Pagination
                     current={currentPage}
                     pageSize={pageSize}
                     total={totalRecords}
                     showSizeChanger
-                    onChange={handlePageChange}
-                    onShowSizeChange={handlePageChange}
+                    onChange={(p, ps) => {
+                      setCurrentPage(p);
+                      setPageSize(ps);
+                    }}
                     showTotal={paginationShowTotal}
                   />
                 </div>
               </Col>
 
-              <Col xs={24} lg={8} xl={6}>
+              {/* RIGHT */}
+              <Col xs={24} md={8} lg={7} xl={6}>
+                {/* Здесь НЕ Card. Компонент сам его делает */}
                 <ChannelDailyHistogramm />
               </Col>
 
-              {/* чуть воздуха перед футером, если хочется */}
-              <Col span={24} style={{ marginBottom: 8 }}>
+              {/* MONTHLY */}
+              <Col span={24}>
+                {/* И тут тоже без Card */}
                 <ChannelMonthlyHistogramm />
               </Col>
             </Row>
           </Content>
 
-          {/* ВОТ ТУТ должен быть футер — ВНУТРИ Layout */}
-          <Footer
-            className="app-footer"
-            style={{
-              textAlign: "center",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            <Space
-              align="center"
-              size={[8, 12]}
-              wrap
-              className="app-header-right"
-            >
-              <Button
-                type="text"
-                style={{ backgroundColor: "#ff66aa" }}
-                href="https://osu.ppy.sh/users/13928601"
-                target="_blank"
-                rel="noreferrer"
-              >
-                by Dixxew
-              </Button>
-              <Button
-                type="text"
-                icon={<UserOutlined />}
-                href="https://dixxew.ru"
-                target="_blank"
-                rel="noreferrer"
-              >
-                About me
-              </Button>
-              <Button
-                type="text"
-                icon={<DashboardOutlined />}
-                href="https://dashboard.dixxew.ru"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Dashy
-              </Button>
-              <Button
-                type="text"
-                style={{ backgroundColor: "#1890ff" }}
-                icon={<SendOutlined />}
-                href="https://t.me/Dixxew"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Telegram
-              </Button>
-              <Button
-                type="text"
-                icon={<ApiOutlined />}
-                href="https://osu.dixxew.ru/api/scalar"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Scalar
-              </Button>
-            </Space>
+          <Footer className="enhanced-footer" style={{padding: "24px 0 0 0"}}>
+            <div className="footer-center">
+              <Space align="center" size={[12, 16]} wrap>
+                <Button
+                  type="text"
+                  href="https://osu.ppy.sh/users/13928601"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="footer-btn pink"
+                >
+                  by Dixxew
+                </Button>
+
+                <div className="repo-group">
+                  <Button
+                    type="text"
+                    href="https://github.com/dixxew/OsuRussianRep"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="repo-btn repo-btn-left"
+                  >
+                    <i className="github-icon" />
+                    Backend
+                  </Button>
+
+                  <Button
+                    type="text"
+                    href="https://github.com/dixxew/OsuRepFront"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="repo-btn repo-btn-right"
+                  >
+                    <i className="github-icon" />
+                    Frontend
+                  </Button>
+                </div>
+
+                <Button
+                  type="text"
+                  icon={<UserOutlined />}
+                  className="footer-txt"
+                  href="https://dixxew.ru"
+                  target="_blank"
+                >
+                  About me
+                </Button>
+
+                <Button
+                  type="text"
+                  icon={<DashboardOutlined />}
+                  className="footer-txt"
+                  href="https://dashboard.dixxew.ru"
+                  target="_blank"
+                >
+                  Dashy
+                </Button>
+
+                <Button
+                  type="text"
+                  icon={<SendOutlined />}
+                  href="https://t.me/Dixxew"
+                  target="_blank"
+                  className="footer-btn blue"
+                >
+                  Telegram
+                </Button>
+
+                <Button
+                  type="text"
+                  icon={<ApiOutlined />}
+                  href="https://osu.dixxew.ru/api/scalar"
+                  target="_blank"
+                  className="footer-txt"
+                >
+                  Scalar
+                </Button>
+              </Space>
+            </div>
+            <div className="footer-line" />
           </Footer>
         </Layout>
 
         <UserModal
           visible={!!selectedUser}
           user={selectedUser}
-          onClose={handleModalClose}
+          onClose={() => setSelectedUser(null)}
         />
       </ConfigProvider>
     </div>

@@ -13,12 +13,11 @@ const { Header: AntHeader } = Layout;
 const { Text } = Typography;
 
 const Header: React.FC = () => {
-  // было: boolean; делаем null для состояния загрузки
   const [ircStatus, setIrcStatus] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let timer: number | undefined;
+    let timer: number;
 
     const fetchStatus = async () => {
       try {
@@ -26,50 +25,50 @@ const Header: React.FC = () => {
         const resp = await axios.get<boolean>(
           "https://osu.dixxew.ru/api/Status/IrcStatus"
         );
-        // ставим фактическое значение, даже если false
         setIrcStatus(resp.data);
-      } catch (e: any) {
+      } catch {
+        setIrcStatus(null);
         setError("Не удалось получить статус IRC");
-        setIrcStatus(null); // оставляем "loading/unknown"
       }
     };
 
     fetchStatus();
-    // опционально: автообновление раз в 30 сек
-    timer = window.setInterval(fetchStatus, 30_000);
-
-    return () => {
-      if (timer) window.clearInterval(timer);
-    };
+    timer = window.setInterval(fetchStatus, 30000);
+    return () => clearInterval(timer);
   }, []);
 
   const isLoading = ircStatus === null && !error;
 
   const tagProps =
     isLoading
-      ? { icon: <SyncOutlined spin />, text: "IRC" }
+      ? { icon: <SyncOutlined spin />, text: "Checking…" }
       : error
-      ? { icon: <CloseCircleOutlined />, text: "IRC неизвестно" }
+      ? { icon: <CloseCircleOutlined />, text: "Unknown" }
       : ircStatus
-      ? { icon: <CheckCircleOutlined />, text: "IRC online" }
-      : { icon: <CloseCircleOutlined />, text: "IRC offline" };
+      ? { icon: <CheckCircleOutlined />, text: "Online" }
+      : { icon: <CloseCircleOutlined />, text: "Offline" };
 
   const tooltip =
-    isLoading ? "Проверяю статус…" : error ?? (ircStatus ? "IRC подключен" : "IRC не подключен");
+    isLoading
+      ? "Проверяю статус…"
+      : error ?? (ircStatus ? "IRC подключен" : "IRC не подключен");
 
   return (
-    <AntHeader className="app-header align-items-center" role="banner">
-      <Flex className="app-header-inner align-items-center" justify="space-between" style={{ width: "100%" }}>
-        <Flex align="center" gap={8}>
-          <img alt="osu!" src={osuIcon} className="osu-icon" />
-          <Text className="brand" strong>#russian</Text>
+    <AntHeader className="app-header glossy-header" role="banner">
+      <Flex
+        className="app-header-inner"
+        justify="space-between"
+        align="center"
+      >
+        <Flex align="center" gap={10}>
+          <img alt="osu!" src={osuIcon} className="osu-icon neon-pulse" />
+          <Text className="brand brand-neon" strong>
+            #russian
+          </Text>
         </Flex>
 
         <Tooltip title={tooltip}>
-          <Tag
-            icon={tagProps.icon}
-            style={{ margin: 0, borderRadius: 999 }}
-          >
+          <Tag icon={tagProps.icon} className="status-tag status-glow">
             {tagProps.text}
           </Tag>
         </Tooltip>

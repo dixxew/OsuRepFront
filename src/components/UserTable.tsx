@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { ChatUser } from "../types/ChatUser";
 import {
   Avatar,
   Badge,
@@ -13,12 +12,8 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import {
-  MailOutlined,
-  StarOutlined,
-  DownOutlined,
-  CloseCircleFilled,
-} from "@ant-design/icons";
+import { MailOutlined, StarOutlined, DownOutlined } from "@ant-design/icons";
+import { ChatUser } from "../types/ChatUser";
 import "../styles/UserRow.css";
 
 const { Text } = Typography;
@@ -27,78 +22,57 @@ interface UserRowProps {
   users: ChatUser[] | null;
   currentPage: number;
   pageSize: number;
-  onSortChange: (sortField: string) => void;
-  onRowClick: (record: ChatUser) => void;
-  onSearchNickname: (term: string) => void; // добавь в пропсы
+  onSortChange: (f: string) => void;
+  onRowClick: (user: ChatUser) => void;
+  onSearchNickname: (term: string) => void;
 }
 
-const formatDate = (iso: string | number | Date) => {
+const TOP_STYLES = [
+  { size: 80, color: "gold", shadow: "rgba(255,215,0,0.6)" },
+  { size: 70, color: "rebeccapurple", shadow: "rgba(102,51,153,0.5)" },
+  { size: 64, color: "dodgerblue", shadow: "rgba(30,144,255,0.5)" },
+];
+
+const formatDate = (v: any) => {
   try {
-    const d = new Date(iso);
     return new Intl.DateTimeFormat(undefined, {
       year: "numeric",
       month: "short",
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(d);
+    }).format(new Date(v));
   } catch {
-    return String(iso ?? "");
+    return `${v || ""}`;
   }
 };
 
 const renderAvatar = (
   url: string | null,
   index: number,
-  currentPage: number,
-  pageSize: number
+  page: number,
+  sizePage: number
 ) => {
-  const globalIndex = (currentPage - 1) * pageSize + index;
+  const global = (page - 1) * sizePage + index;
+  const top = page === 1 ? TOP_STYLES[global] : undefined;
 
-  let size = 60;
-  let borderColor: string | undefined;
-  let boxShadow: string | undefined;
+  const avatar = (
+    <Avatar
+      size={top?.size || 56}
+      src={url ?? "https://api.api-ninjas.com/v1/randomimage?category=cat"}
+      style={{
+        border: top ? `2px solid ${top.color}` : undefined,
+        boxShadow: top ? `0 0 0 3px ${top.shadow}` : undefined,
+        background: "#f5f5f5",
+      }}
+    />
+  );
 
-  if (currentPage === 1) {
-    if (globalIndex === 0) {
-      size = 80;
-      borderColor = "gold";
-      boxShadow = "0 0 0 3px rgba(255, 215, 0, 0.6)";
-    } else if (globalIndex === 1) {
-      size = 70;
-      borderColor = "rebeccapurple";
-      boxShadow = "0 0 0 3px rgba(102, 51, 153, 0.5)";
-    } else if (globalIndex === 2) {
-      size = 64;
-      borderColor = "dodgerblue";
-      boxShadow = "0 0 0 3px rgba(30, 144, 255, 0.5)";
-    } else {
-      size = 56;
-    }
-  }
-
-  const src = url ?? "https://api.api-ninjas.com/v1/randomimage?category=cat"; // твой же fallback, оставил
+  if (!top) return avatar;
 
   return (
-    <Badge.Ribbon
-      text={
-        globalIndex < 3 && currentPage === 1 ? `#${globalIndex + 1}` : undefined
-      }
-      color={globalIndex === 0 ? "gold" : globalIndex === 1 ? "purple" : "blue"}
-      style={{
-        display: globalIndex < 3 && currentPage === 1 ? "block" : "none",
-      }}
-    >
-      <Avatar
-        size={size}
-        src={src}
-        alt="avatar"
-        style={{
-          border: borderColor ? `2px solid ${borderColor}` : undefined,
-          boxShadow,
-          backgroundColor: "#f5f5f5",
-        }}
-      />
+    <Badge.Ribbon text={`#${global + 1}`} color={top.color}>
+      {avatar}
     </Badge.Ribbon>
   );
 };
@@ -119,19 +93,14 @@ const UserTable: React.FC<UserRowProps> = ({
   const [nicknameSearch, setNicknameSearch] = useState("");
   if (!users) return null;
 
-  const columns = (
-    currentPage: number,
-    pageSize: number,
-    onSortChange: (sortField: string) => void
-  ) => [
+  const columns = [
     {
       title: "",
-      dataIndex: "avatar",
       key: "avatar",
       width: 96,
       fixed: "left" as const,
-      render: (url: string | null, _record: ChatUser, index: number) =>
-        renderAvatar(url, index, currentPage, pageSize),
+      render: (_: any, record: ChatUser, idx: number) =>
+        renderAvatar(record.avatar, idx, currentPage, pageSize),
     },
     {
       title: (
@@ -147,13 +116,13 @@ const UserTable: React.FC<UserRowProps> = ({
       dataIndex: "nickname",
       key: "nickname",
       width: 220,
-      render: (text: string) => (
+      render: (t: string) => (
         <Text
           strong
           ellipsis
           style={{ maxWidth: 200, display: "inline-block" }}
         >
-          {text}
+          {t}
         </Text>
       ),
     },
@@ -167,72 +136,64 @@ const UserTable: React.FC<UserRowProps> = ({
           }}
         >
           <Space style={{ cursor: "pointer" }}>
-            Reputation &amp; Messages <DownOutlined />
+            Reputation & Messages <DownOutlined />
           </Space>
         </Dropdown>
       ),
-      dataIndex: "reputation",
-      key: "reputationAndMessages",
+      key: "stats",
       width: 260,
-      render: (_: any, record: ChatUser) => (
-        <Space size="middle" align="center">
+      render: (_: any, r: ChatUser) => (
+        <Space size="middle">
           <Space>
             <StarOutlined style={{ color: "gold" }} />
-            <Text>{record.reputation}</Text>
+            <Text>{r.reputation}</Text>
           </Space>
           <Space>
             <MailOutlined style={{ opacity: 0.7 }} />
-            <Text type="secondary">{record.messagesCount}</Text>
+            <Text type="secondary">{r.messagesCount}</Text>
           </Space>
         </Space>
       ),
     },
     {
       title: "Last Reputation",
-      dataIndex: "lastRepNickname",
       key: "lastRep",
       ellipsis: true,
-      render: (text: string, record: ChatUser) => {
-        const nice = formatDate(record.lastRepTime!);
-        return record.lastRepNickname ? (
+      render: (_: any, r: ChatUser) =>
+        r.lastRepNickname ? (
           <Space direction="vertical" size={0}>
             <Text>
-              from <Text strong>{record.lastRepNickname || text}</Text>
+              from <Text strong>{r.lastRepNickname}</Text>
             </Text>
-            <Tooltip title={"123"}>
+            <Tooltip title="123">
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {nice}
+                {formatDate(r.lastRepTime)}
               </Text>
             </Tooltip>
           </Space>
         ) : (
           <Text>Nobody 😢</Text>
-        );
-      },
+        ),
     },
   ];
 
   return (
     <ConfigProvider
       theme={{
-        token: {
-          borderRadiusLG: 14,
-          controlHeight: 36,
-        },
-        components: {
-          Table: {
-            headerColor: "#333",
-          },
-        },
+        token: { borderRadiusLG: 14, controlHeight: 36 },
+        components: { Table: { headerColor: "#333" } },
       }}
     >
       <Card
         bordered
         bodyStyle={{ padding: 0 }}
-        style={{ overflow: "hidden", boxShadow: "0 6px 18px rgba(0,0,0,0.06)" }}
+        style={{
+          overflow: "hidden",
+          boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+        }}
       >
         <Table<ChatUser>
-          columns={columns(currentPage, pageSize, onSortChange)}
+          columns={columns}
           dataSource={users}
           rowKey="id"
           size="middle"
