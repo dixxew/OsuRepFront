@@ -48,7 +48,9 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
   const [maxCount, setMaxCount] = useState(1);
 
   useEffect(() => {
-    if (!user || !visible) return;
+  if (!user) return;
+
+  if (!visible) return;
 
     setLoadingWords(true);
     userWordStatsService
