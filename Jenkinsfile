@@ -6,12 +6,8 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh '''
-          set -a
-          . ./.env   # загрузили REACT_APP_API_BASE_URL из .env
-          set +a
+        sh ''' 
           docker build \
-            --build-arg REACT_APP_API_BASE_URL="$REACT_APP_API_BASE_URL" \
             -t $IMAGE .
         '''
       }
