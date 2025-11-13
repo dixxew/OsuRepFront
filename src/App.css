@@ -373,21 +373,19 @@
 /* Word chips */
 
 .user-modal__word-chip {
+  border-radius: 12px;
+  padding: 6px 12px;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 999px;
-  padding: 6px 10px 6px 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  gap: 6px;
   backdrop-filter: blur(6px);
-  color: #e2e8f0;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: 0.15s ease;
+  position: relative;
+
+  /* всегда красиво */
+  box-shadow: inset 0 0 4px rgba(255,255,255,0.05);
 }
+
 
 .user-modal__word-chip:hover {
   transform: translateY(-2px);
@@ -403,3 +401,28 @@
   color: #cbd5e1;
   font-weight: 400;
 }
+
+.word-rank-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  padding: 2px 5px;
+  background: #0f172a;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.2);
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 0 6px rgba(0,0,0,0.35);
+}
+
+.word-rank-text {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 3px;
+  user-select: none;
+}
+
