@@ -133,12 +133,7 @@ const StatsTopWords: React.FC = () => {
             Word stats
           </Title>
 
-          <Flex
-            align="center"
-            justify="center"
-            gap={12}
-            wrap="wrap"
-          >
+          <Flex align="center" justify="center" gap={12} wrap="wrap">
             {filterBtn("today", "Сегодня")}
             {filterBtn("month", "Месяц")}
             {filterBtn("all", "Всё время")}
@@ -202,7 +197,7 @@ const StatsTopWords: React.FC = () => {
                       borderRadius: 12,
                       padding: "10px 12px",
                       border: "1px solid #2a2f3a", // тонкий, не броский
-                      minWidth: 240,
+                      minWidth: 160,
                       flexGrow: 1,
                       maxWidth: "calc(33% - 12px)",
                     }}
@@ -242,7 +237,7 @@ const StatsTopWords: React.FC = () => {
                     {/* count small */}
                     <Text
                       style={{
-                        minWidth: 48,
+                        minWidth: 32,
                         textAlign: "right",
                         color: "#9ca3af",
                         fontSize: 13,
@@ -250,6 +245,19 @@ const StatsTopWords: React.FC = () => {
                     >
                       {nf.format(w.cnt)}
                     </Text>
+
+                    {/* rate */}
+                    {w.rate > 0 && <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "#eab308", // мягкий жёлтый, как в rankStyles["S"]
+                        minWidth: 24,
+                        textAlign: "right",
+                      }}
+                    >
+                      ★{w.rate}
+                    </div>}
 
                     {/* + button micro */}
                     <Button
