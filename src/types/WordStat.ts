@@ -1,4 +1,5 @@
 export interface TopWord {
   word: string;
-  count: number;
+  cnt: number;
+  rate: number;
 }

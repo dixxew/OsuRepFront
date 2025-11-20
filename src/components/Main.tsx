@@ -31,6 +31,7 @@ import {
 } from "@ant-design/icons";
 
 import darkTheme from "../theme";
+import StatsTopWords from "./StatsTopWords";
 
 const { Content, Footer } = Layout;
 const { Text } = Typography;
@@ -165,10 +166,14 @@ const Main: React.FC = () => {
                 {/* И тут тоже без Card */}
                 <ChannelMonthlyHistogramm />
               </Col>
+
+              <Col xs={24}>
+                <StatsTopWords />
+              </Col>
             </Row>
           </Content>
 
-          <Footer className="enhanced-footer" style={{padding: "24px 0 0 0"}}>
+          <Footer className="enhanced-footer" style={{ padding: "24px 0 0 0" }}>
             <div className="footer-center">
               <Space align="center" size={[12, 16]} wrap>
                 <Button

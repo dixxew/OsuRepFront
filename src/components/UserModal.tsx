@@ -23,12 +23,12 @@ import { ChatUser } from "../types/ChatUser";
 import "../styles/UserModal.css";
 import { TopWord } from "../types/WordStat";
 import { userWordStatsService } from "../services/userWordStatsService";
-import wordRanks from "../config/word-ranks.json";
+import { rankStyles, getWordRank } from "../utils/wordRanks";
 
 const { Title, Text } = Typography;
 
 // ---------------------------------------------------------
-// Типы и константы
+// Типы и стили рангов
 // ---------------------------------------------------------
 
 const nf = new Intl.NumberFormat();
@@ -41,7 +41,6 @@ const styleIcons: Record<string, React.ReactNode> = {
   tablet: <TabletOutlined />,
 };
 
-// Жёстко задаём набор рангов
 type WordRank = "SSS" | "SS" | "S" | "A" | "B" | "C" | "D" | "F";
 
 type RankVisual = {
@@ -50,58 +49,13 @@ type RankVisual = {
   borderGlow?: string;
 };
 
-// Все ранги одной структуры
-const rankStyles: Record<WordRank, RankVisual & { badgeBg: string }> = {
-  SSS: {
-    text: "linear-gradient(90deg,#f472b6,#e879f9)",
-    borderColor: "#f472b6",
-    borderGlow: "0 0 12px #f472b6aa",
-    badgeBg: "linear-gradient(90deg,#f472b6,#e879f9)",
-  },
-  SS: {
-    text: "#f97316",
-    borderColor: "#f97316",
-    borderGlow: "0 0 8px #f9731688",
-    badgeBg: "#f97316",
-  },
-  S: {
-    text: "#eab308",
-    borderColor: "#eab308",
-    borderGlow: "0 0 6px #eab30877",
-    badgeBg: "#eab308",
-  },
-  A: {
-    text: "#4ade80",
-    borderColor: "#4ade80",
-    badgeBg: "#4ade80",
-  },
-  B: {
-    text: "#2dd4bf",
-    borderColor: "#2dd4bf",
-    badgeBg: "#2dd4bf",
-  },
-  C: {
-    text: "#60a5fa",
-    borderColor: "#60a5fa",
-    badgeBg: "#60a5fa",
-  },
-  D: {
-    text: "#a78bfa",
-    borderColor: "#a78bfa",
-    badgeBg: "#a78bfa",
-  },
-  F: {
-    text: "#64748b",
-    borderColor: "#334155",
-    badgeBg: "#475569",
-  },
-};
 
 interface UserModalProps {
   visible: boolean;
   user: ChatUser | null;
   onClose: () => void;
 }
+
 
 // ---------------------------------------------------------
 // Компонент
@@ -112,7 +66,6 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
   const [loadingWords, setLoadingWords] = useState(false);
   const [maxCount, setMaxCount] = useState(1);
 
-  // грузим топ слов
   useEffect(() => {
     if (!user || !visible) return;
 
@@ -123,25 +76,13 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
       .then((res) => {
         const arr = Array.isArray(res) ? res : [];
         setWords(arr);
-        setMaxCount(arr.length > 0 ? Math.max(...arr.map((x) => x.count)) : 1);
+        setMaxCount(arr.length > 0 ? Math.max(...arr.map((x) => x.cnt)) : 1);
       })
       .catch((e) => console.error("Failed to load user words:", e))
       .finally(() => setLoadingWords(false));
   }, [user, visible]);
 
   if (!user) return null;
-
-  // ранк слова по json-конфигу
-  const getWordRank = (word: string): WordRank | null => {
-    const lower = word.toLowerCase();
-
-    for (const rank of Object.keys(wordRanks) as WordRank[]) {
-      const arr = (wordRanks as any)[rank] as string[];
-      if (arr.some((w) => w.toLowerCase() === lower)) return rank;
-    }
-
-    return null;
-  };
 
   const flagUrl = user.countryCode
     ? `https://osu.ppy.sh/images/flags/${user.countryCode}.png`
@@ -167,7 +108,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
       className="user-modal"
     >
       <div className="user-modal__content">
-        {/* AVATAR + MAIN INFO */}
+        {/* HEADER */}
         <Flex gap={20} align="flex-start" wrap="wrap">
           {/* AVATAR BLOCK */}
           <div className="user-modal__avatar-wrap">
@@ -189,7 +130,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
 
           {/* MAIN INFO */}
           <Flex vertical style={{ flex: 1, minWidth: 320 }} gap={8}>
-            {/* Header: nickname + rep */}
+            {/* Title + rep */}
             <Flex align="center" justify="space-between" wrap="wrap">
               <Flex align="center" gap={8} wrap="wrap">
                 <Title
@@ -222,7 +163,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
               </Tag>
             </Flex>
 
-            {/* Level bar */}
+            {/* Level */}
             <div className="user-modal__level-block">
               <div className="user-modal__level-bar-bg">
                 <div
@@ -277,7 +218,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
 
             <Divider className="user-modal__divider" />
 
-            {/* Play info + playstyle */}
+            {/* Play info */}
             <Flex justify="space-between" wrap="wrap" gap={16}>
               <Flex vertical gap={2}>
                 <Text type="secondary" className="user-modal__label">
@@ -326,10 +267,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
 
           {loadingWords ? (
             <Flex justify="center" style={{ padding: "12px 0" }}>
-              <LoadingOutlined
-                style={{ fontSize: 24, color: "#38bdf8" }}
-                spin
-              />
+              <LoadingOutlined style={{ fontSize: 24, color: "#38bdf8" }} spin />
             </Flex>
           ) : words.length === 0 ? (
             <Text type="secondary" style={{ fontStyle: "italic" }}>
@@ -345,52 +283,45 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
               }}
             >
               {words.map((w) => {
-                const intensity = w.count / maxCount;
-                const alpha = 0.25 + intensity * 0.4;
-                const bg = `linear-gradient(145deg, rgba(56,189,248,${alpha}), rgba(14,165,233,${alpha}))`;
 
-                const rank = getWordRank(w.word);
-                const st = rank ? rankStyles[rank] : null;
+                const rank = getWordRank(w.rate);
+                const st = rankStyles[rank];
 
                 return (
                   <div
                     key={w.word}
                     className="user-modal__word-chip"
                     style={{
-                      background: bg,
                       borderRadius: 12,
                       padding: "6px 12px",
                       position: "relative",
-                      border: `2px solid ${st?.borderColor ?? "transparent"}`,
-                      boxShadow: st?.borderGlow,
+                      border: `2px solid ${st.borderColor}`,
+                      boxShadow: st.borderGlow,
                     }}
                   >
                     <span className="user-modal__word-text">{w.word}</span>
-                    <span className="user-modal__word-count">{w.count}</span>
+                    <span className="user-modal__word-count">{w.cnt}</span>
 
-                    {rank && (
-                      <span
-                        className="word-rank-text"
-                        style={{
-                          position: "absolute",
-                          top: -8,
-                          right: 4,
-                          padding: "0px 4px",
-                          fontSize: 9,
-                          fontWeight: 700,
-                          borderRadius: 6,
-                          background: "#0A0A0A",
-                          color: st?.borderColor,
-                          boxShadow: st?.borderGlow,
-                          
-                          border: `1px solid ${st?.borderColor}`,
-                          textShadow: "0 0 2px rgba(0,0,0,0.3)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {rank}
-                      </span>
-                    )}
+                    <span
+                      className="word-rank-text"
+                      style={{
+                        position: "absolute",
+                        top: -8,
+                        right: 4,
+                        padding: "0px 4px",
+                        fontSize: 9,
+                        fontWeight: 700,
+                        borderRadius: 6,
+                        background: "#0A0A0A",
+                        color: st.borderColor,
+                        boxShadow: st.borderGlow,
+                        border: `1px solid ${st.borderColor}`,
+                        textShadow: "0 0 2px rgba(0,0,0,0.3)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {rank}
+                    </span>
                   </div>
                 );
               })}
