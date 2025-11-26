@@ -57,10 +57,6 @@ interface UserModalProps {
 }
 
 
-// ---------------------------------------------------------
-// Компонент
-// ---------------------------------------------------------
-
 const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
   const [words, setWords] = useState<TopWord[]>([]);
   const [loadingWords, setLoadingWords] = useState(false);
@@ -271,7 +267,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
             </Flex>
           ) : words.length === 0 ? (
             <Text type="secondary" style={{ fontStyle: "italic" }}>
-              ничего не найдено
+              Nothing found...
             </Text>
           ) : (
             <Flex
@@ -309,11 +305,11 @@ const UserModal: React.FC<UserModalProps> = ({ visible, user, onClose }) => {
                         top: -8,
                         right: 4,
                         padding: "0px 4px",
-                        fontSize: 9,
-                        fontWeight: 700,
+                        fontSize: 10,
+                        fontWeight: 650,
                         borderRadius: 6,
-                        background: "#0A0A0A",
-                        color: st.borderColor,
+                        background: st.badgeBg,
+                        color: "ffffff",
                         boxShadow: st.borderGlow,
                         border: `1px solid ${st.borderColor}`,
                         textShadow: "0 0 2px rgba(0,0,0,0.3)",

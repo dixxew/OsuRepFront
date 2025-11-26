@@ -56,7 +56,7 @@ export const rankStyles: Record<WordRank, RankVisual> = {
   },
   F: {
     text: "#64748b",
-    borderColor: "#334155",
+    borderColor: "#475161ff",
     badgeBg: "#475569",
   },
 };

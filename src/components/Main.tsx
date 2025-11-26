@@ -32,6 +32,7 @@ import {
 
 import darkTheme from "../theme";
 import StatsTopWords from "./StatsTopWords";
+import ChatMessages from "./ChatMessages";
 
 const { Content, Footer } = Layout;
 const { Text } = Typography;
@@ -169,6 +170,9 @@ const Main: React.FC = () => {
 
               <Col xs={24}>
                 <StatsTopWords />
+              </Col>
+              <Col xs={24}>
+                <ChatMessages />
               </Col>
             </Row>
           </Content>

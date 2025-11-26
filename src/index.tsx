@@ -10,15 +10,11 @@ const container = document.getElementById('root') as HTMLElement;
 if (container.hasChildNodes()) {
   hydrateRoot(
     container,
-    <React.StrictMode>
       <App />
-    </React.StrictMode>
   );
 } else {
   createRoot(container).render(
-    <React.StrictMode>
       <App />
-    </React.StrictMode>
   );
 }
 
