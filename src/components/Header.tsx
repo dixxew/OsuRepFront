@@ -13,46 +13,6 @@ const { Header: AntHeader } = Layout;
 const { Text } = Typography;
 
 const Header: React.FC = () => {
-  const [ircStatus, setIrcStatus] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let timer: number;
-
-    const fetchStatus = async () => {
-      try {
-        setError(null);
-        const resp = await axios.get<boolean>(
-          "https://osu.dixxew.ru/api/Status/IrcStatus"
-        );
-        setIrcStatus(resp.data);
-      } catch {
-        setIrcStatus(null);
-        setError("Не удалось получить статус IRC");
-      }
-    };
-
-    fetchStatus();
-    timer = window.setInterval(fetchStatus, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const isLoading = ircStatus === null && !error;
-
-  const tagProps =
-    isLoading
-      ? { icon: <SyncOutlined spin />, text: "Checking…" }
-      : error
-      ? { icon: <CloseCircleOutlined />, text: "Unknown" }
-      : ircStatus
-      ? { icon: <CheckCircleOutlined />, text: "Online" }
-      : { icon: <CloseCircleOutlined />, text: "Offline" };
-
-  const tooltip =
-    isLoading
-      ? "Проверяю статус…"
-      : error ?? (ircStatus ? "IRC подключен" : "IRC не подключен");
-
   return (
     <AntHeader className="app-header glossy-header" role="banner">
       <Flex
@@ -66,12 +26,6 @@ const Header: React.FC = () => {
             #russian
           </Text>
         </Flex>
-
-        <Tooltip title={tooltip}>
-          <Tag icon={tagProps.icon} className="status-tag status-glow">
-            {tagProps.text}
-          </Tag>
-        </Tooltip>
       </Flex>
     </AntHeader>
   );
